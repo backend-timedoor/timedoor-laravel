@@ -1,0 +1,4 @@
+.DS_Store
+_staging/
+*.log
+node_modules/

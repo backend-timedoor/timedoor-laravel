@@ -1,0 +1,11 @@
+{
+  "name": "timedoor-laravel-marketplace",
+  "owner": { "name": "Timedoor Engineering" },
+  "plugins": [
+    {
+      "name": "timedoor-laravel",
+      "source": "./",
+      "description": "Laravel backend coding standards: PHP conventions, security rules, API response format, and battle-tested patterns"
+    }
+  ]
+}

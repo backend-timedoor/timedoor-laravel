@@ -1,0 +1,6 @@
+{
+  "name": "timedoor-laravel",
+  "description": "Laravel backend coding standards: PHP conventions, security rules, API response format, and battle-tested patterns distilled from real production projects",
+  "version": "0.1.0",
+  "author": { "name": "Timedoor Engineering" }
+}

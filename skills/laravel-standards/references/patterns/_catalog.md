@@ -10,6 +10,6 @@ Public note: project names here are ANONYMIZED codes (proj-a, proj-b...). Real i
 
 | Code | Type | Laravel | Scope of extraction (from notes) | Status | Last ingested |
 |---|---|---|---|---|---|
-| _(none yet)_ | | | | | |
+| proj-a | full-api | 10 | Whole project, no exclusions | extracted | 2026-08-21 |
 
 Legend — Status: `extracted` / `re-extraction pending` / `deprecated source`.

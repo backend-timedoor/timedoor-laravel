@@ -10,6 +10,7 @@ Format: [Semantic Versioning](https://semver.org/). Never mention client names o
 - Pattern files: blade-monolith and vue-hybrid awaiting ingestion; full-api populated from proj-a
 - Full API patterns: domain-scoped route files, modular Action classes with instance `execute()`, and FormRequest-to-DTO mapping
 - Ingested proj-b: Laravel 10 API permission middleware scoped per action and allowlisted, eager-loaded, paginated query pipelines
+- Ingested proj-c: protected API route groups for authentication and cross-cutting middleware
 
 Source catalog code: proj-a. Scope: full-api, Laravel 10, whole project. No source project identities recorded here.
 

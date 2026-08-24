@@ -61,6 +61,37 @@ public function update(UpdateOrderRequest $request, Order $order): OrderDetailRe
 }
 ```
 
+## Action-scoped permission middleware [L10, pre-L11 middleware-registration style]
+Rule: Declare each API action's permission middleware in the controller constructor, scoped with `only(...)` per action. Prevents accidental permission reuse across endpoints.
+Why: makes authorization explicit at each endpoint boundary and limits permission middleware to intended actions.
+Evidence: repeated in 3+ API controllers, verified against source in proj-b.
+Note: Laravel 11+ replaces constructor `$this->middleware()` with the `HasMiddleware` interface; use this exact form only on Laravel 10 and earlier.
+Example:
+```php
+class ProductController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('permission:products.view')->only('index');
+        $this->middleware('permission:products.update')->only('update');
+    }
+}
+```
+
+## Allowlisted, eager-loaded API query pipelines [L10+]
+Rule: Compose API list queries with `QueryBuilder::for()`, explicit `allowedFilters([...])`, required `with([...])`, and `paginate()`, then return a `JsonResource` collection.
+Why: filter allow-lists constrain client-controlled queries, eager loading prevents N+1 queries, and pagination bounds response and database work.
+Evidence: repeated across 3+ API list controllers, verified against source in proj-b.
+Example:
+```php
+$products = QueryBuilder::for(Product::class)
+    ->allowedFilters(['status'])
+    ->with('owner')
+    ->paginate();
+
+return ProductResource::collection($products);
+```
+
 ## Per-domain route file split, required from area index [L10+]
 Rule: Split each API area's routes into one file per domain resource (`routes/api/{area}/{domain}.php`), then `require` them from the area's index route file instead of one large routes file.
 Why: keeps the route table navigable as domain count grows and reduces merge conflicts; one file maps to one bounded context.

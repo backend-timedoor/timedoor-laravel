@@ -18,4 +18,5 @@ Source catalog code: proj-a. Scope: full-api, Laravel 10, whole project. No sour
 
 ### Rejected
 - Business-rule violations standardized on `ValidationException`/`abort_if`: contradicted by legitimate custom exception usage and redundant with existing guard-clause guidance.
+- Rejected proj-f repository-layer proposal: conflicts with Service/Action standard; no patterns extracted.
 - Thin controllers, list/detail resources, singleton exception formatting, environment-gated doc routes, and `pagination_limit()` helper: insufficiently novel or evidenced.

@@ -104,17 +104,18 @@ require __DIR__.'/customer.php';
 require __DIR__.'/order.php';
 ```
 
-## Protected route groups for cross-cutting middleware [L10+]
-Rule: Wrap protected API domains in a route group carrying authentication middleware (and any other cross-cutting concern middleware, e.g. audit/activity logging) scoped to that group; leave public routes outside any such group. Don't attach the same middleware endpoint-by-endpoint.
-Why: Boundary-level middleware centralizes fail-closed access checks and prevents endpoint-level middleware drift where a new route is added without authentication.
-Evidence: 6 occurrences across versioned API route files and the web route file, verified against source in proj-c.
+## Protected route groups for cross-cutting middleware [L7+]
+Rule: Wrap protected API domains in a route group carrying authentication middleware (and any other cross-cutting concern middleware, e.g. audit/activity logging) scoped to that group; leave public routes outside any such group. Don't attach the same middleware endpoint-by-endpoint. Pair every `prefix()` with a matching `name()` prefix so route names stay collision-free across audience trees.
+Why: Boundary-level middleware centralizes fail-closed access checks and prevents endpoint-level middleware drift where a new route is added without authentication; mirrored name prefixes keep `route()` lookups unambiguous when several audiences expose the same domain.
+Evidence: 6 occurrences across versioned API route files and the web route file, verified against source in proj-c; ~100 grouped routes across two audience route files in proj-d, confirming the shape holds below L10.
 Example:
 ```php
 Route::middleware(['auth:user', 'activity']) // 'activity' stands in for project-specific cross-cutting middleware; not a required alias.
     ->prefix('products')
+    ->name('products.')
     ->group(function (): void {
-        Route::get('/', [ProductController::class, 'index']);
-        Route::post('/', [ProductController::class, 'store']);
+        Route::get('/', [ProductController::class, 'index'])->name('index');
+        Route::post('/', [ProductController::class, 'store'])->name('store');
     });
 ```
 Snippet candidate: yes

@@ -13,5 +13,6 @@ Public note: project names here are ANONYMIZED codes (proj-a, proj-b...). Real i
 | proj-a | full-api | 10 | Whole project, no exclusions | extracted | 2026-08-21 |
 | proj-b | api,blade,vue | 10 | Whole project, no exclusions | extracted | 2026-08-24 |
 | proj-c | api,blade,vue | 11.9 | Whole project, no exclusions | extracted | 2026-08-24 |
+| proj-d | api,blade,vue | 8 | Whole project, no exclusions | extracted | 2026-08-31 |
 
 Legend — Status: `extracted` / `re-extraction pending` / `deprecated source`.

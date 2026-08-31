@@ -119,3 +119,51 @@ Route::middleware(['auth:user', 'activity']) // 'activity' stands in for project
     });
 ```
 Snippet candidate: yes
+
+## Grouped read services with server-derived scope [L5.7+]
+Rule: Group read queries of one bounded reporting domain into a single service class under `app/Modules/{Domain}/Services`, pass shared scope once through the constructor as a filter object, and expose one typed public method per result. Derive scope from the authenticated user or tenant server-side — never raw request input. Keep one service per bounded domain, not a shared `StatisticService`; memoize results reused by multiple methods.
+Why: keeps read logic out of controllers and unit-testable without HTTP; one scope object removes repeated filter plumbing and centralizes tenant scoping, so new queries cannot silently omit it. Complements write-side Action classes and the existing rule that services group related methods.
+Evidence: five sibling read services in one reporting module, verified against source in proj-e. Single module means low confidence; re-confirm on next api,blade ingestion.
+Note: constructor property promotion requires PHP 8; declare the property explicitly on Laravel 6 and other legacy projects.
+Example:
+```php
+// app/Modules/Reporting/Services/ProductReportService.php
+class ProductReportService
+{
+    /** @var ReportScope */
+    private $scope;
+
+    /** @var Collection|null */
+    private $chartData;
+
+    public function __construct(ReportScope $scope)
+    {
+        $this->scope = $scope;
+        $this->chartData = null;
+    }
+
+    public function chartData(): Collection
+    {
+        return $this->chartData ??= Product::query()
+            ->whereIn('owner_id', $this->scope->ownerIds())
+            ->whereBetween('created_at', [$this->scope->from(), $this->scope->to()])
+            ->get();
+    }
+
+    public function total(): int
+    {
+        return $this->chartData()->count();
+    }
+}
+
+// Build scope from the authenticated user, not raw input.
+$service = new ProductReportService(
+    ReportScope::forUser(auth()->user(), $request->validated())
+);
+
+return response()->json(['data' => [
+    'chart' => $service->chartData(),
+    'total' => $service->total(),
+]]);
+```
+Snippet candidate: no

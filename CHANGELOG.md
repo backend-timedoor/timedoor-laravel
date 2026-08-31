@@ -12,6 +12,7 @@ Format: [Semantic Versioning](https://semver.org/). Never mention client names o
 - Ingested proj-b: Laravel 10 API permission middleware scoped per action and allowlisted, eager-loaded, paginated query pipelines
 - Ingested proj-c: protected API route groups for authentication and cross-cutting middleware
 - Ingested proj-d: area layout + section/stack composition for Blade views; protected route group rule widened to L7+ and strengthened with mirrored `name()` prefixes
+- Ingested proj-e: grouped read services with typed, server-derived scope and named result methods
 
 Source catalog code: proj-a. Scope: full-api, Laravel 10, whole project. No source project identities recorded here.
 

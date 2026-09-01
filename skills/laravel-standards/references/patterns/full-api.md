@@ -8,7 +8,7 @@ title: Patterns — full-api
 ## Action classes located under `app/Modules/{Domain}/Actions` [L10+]
 Rule: Extract non-trivial business logic (multi-step writes, transactions, cross-model operations) into a dedicated Action class under `app/Modules/{Domain}/Actions`, one action per file. Name it `<Verb><Entity>Action`; event/webhook consumers may instead use `<Event>Handler` to signal they're triggered by an external event, not a direct call. Use an instance method named `execute()` as the Action entry point.
 Why: keeps controllers thin/testable and colocates business logic with its domain module rather than scattering it across generic `app/Services`; reinforces existing human rule "one public method per Action class" with a concrete file-location and call-convention standard.
-Evidence: ~49 Action classes across 13 domain modules (Article, Customer, Assessments, AddOn, Cluster, Enterprise, FileUpload, History, Newsletter, Order, VideoCertification), verified against source in proj-a.
+Evidence: ~49 Action classes across 13 domain modules (Article, Customer, Assessments, AddOn, Cluster, Enterprise, FileUpload, History, Newsletter, Order, VideoCertification), verified against source in proj-a. Location and the `execute()` entry point were corroborated by 3 Action classes in proj-g (L12); proj-g names two `EntityAction` rather than `VerbEntityAction`, so that naming deviation is not adopted. Proj-g also wraps a single `create()` call in an Action, which existing coding standards forbid; corroboration covers location and entry point only.
 Example:
 ```php
 // app/Modules/Order/Actions/UpsertOrderAction.php
@@ -29,8 +29,9 @@ class UpsertOrderAction
 
 ## FormRequest exposes `data()` mapping to a DTO [L10+]
 Rule: For writes consumed by an Action class, add a `data(): SomeData` method to the FormRequest that maps validated input into a typed DTO, and pass that DTO (not the Request) into the Action. Every field read in `data()` must also appear in `rules()` — don't call `$this->string()/->integer()/->float()` on a field the FormRequest doesn't validate; that would silently bypass the allow-list guarantee `validated()` normally gives you.
-Why: decouples Action classes from the HTTP layer so they're unit-testable without mocking `Request`; single, explicit place where "what does a valid write look like" is defined.
-Evidence: 9+ occurrences across Assessment, AddOn, Customer, CMS, VideoCertification, EnterprisePackage, Article, Cluster, and Order request classes, verified against source in proj-a.
+When using `spatie/laravel-data`, build the DTO in one shot from the validated array: `return SomeData::from($this->validated());`. Never write `SomeData::from($this)` or `SomeData::from($request)`: those variants read the entire unvalidated payload. Keep the method named `data()`.
+Why: decouples Action classes from the HTTP layer so they're unit-testable without mocking `Request`; single, explicit place where "what does a valid write look like" is defined; constructing from `validated()` makes the allow-list guarantee structural.
+Evidence: 9+ occurrences across Assessment, AddOn, Customer, CMS, VideoCertification, EnterprisePackage, Article, Cluster, and Order request classes, verified against source in proj-a. Corroborated by 3 FormRequest/controller pairs using `SomeDto::from($this->validated())` with spatie/laravel-data v4 in proj-g (L12).
 Example:
 ```php
 class UpdateOrderRequest extends FormRequest
@@ -43,12 +44,10 @@ class UpdateOrderRequest extends FormRequest
         ];
     }
 
+    // Build from validated() only. Never ::from($this) / ::from($request).
     public function data(): OrderData
     {
-        return new OrderData(
-            name: $this->string('name'),
-            price: $this->float('price'),
-        );
+        return OrderData::from($this->validated());
     }
 }
 
@@ -166,4 +165,16 @@ return response()->json(['data' => [
     'total' => $service->total(),
 ]]);
 ```
+Snippet candidate: no
+
+## Bound client-controlled page size server-side [L7+]
+Rule: Never pass a raw request value into `paginate()`. Clamp the client's page size to a server-defined maximum and fall back to a default when the value is missing or invalid. If the index endpoint already has a FormRequest, validate `per_page` there (`['integer', 'min:1', 'max:100']`) — that is the primary form. For index endpoints with no other input, use one shared global helper in `app/Supports/helpers.php` so the bound cannot drift per controller. Keep the maximum in config, not as a literal.
+Why: an oversized page request is an unauthenticated memory/CPU exhaustion vector and an N+1 amplifier on eager-loaded lists. A single clamp point makes the ceiling auditable in one place rather than re-derived in every controller.
+Evidence: 13 controller call sites of one shared helper across 6 domain areas, verified against source in proj-g. Single project; re-confirm on next full-api ingestion.
+Snippet candidate: no
+
+## Domain enums live beside their module, string-backed [L10+]
+Rule: Put domain enums in `app/Modules/{Domain}/Enums/{Name}Enum.php`, alongside that module's Models/Actions/DTOs — not in a global `app/Enums`. Back them with `string`, not `int`, and cast the column via the model's `casts()`.
+Why: mirrors the existing rule that domain models live under `app/Modules/{Domain}/Models`, so a module stays deletable or movable as one unit. String backing keeps stored values self-describing and survives reordering of cases, which integer backing does not.
+Evidence: 11 enums across 4 domain modules, verified against source in proj-g. Single project; re-confirm on next full-api ingestion.
 Snippet candidate: no

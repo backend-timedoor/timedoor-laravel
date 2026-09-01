@@ -18,14 +18,11 @@ class UpdateOrderRequest extends FormRequest
         ];
     }
 
-    // Every field read here must also appear in rules() above —
-    // don't read a field the FormRequest doesn't validate.
+    // Build from validated() only. Never ::from($this) / ::from($request) —
+    // that reads the whole unvalidated payload.
     public function data(): OrderData
     {
-        return new OrderData(
-            name: $this->string('name'),
-            price: $this->float('price'),
-        );
+        return OrderData::from($this->validated());
     }
 }
 

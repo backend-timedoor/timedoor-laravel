@@ -28,6 +28,7 @@ Read the relevant file(s) BEFORE writing code — not after:
 | Working in a Blade-based project | `references/patterns/blade-monolith.md` |
 | Working in a Laravel + Vue project | `references/patterns/vue-hybrid.md` |
 | Working in a full-API project | `references/patterns/full-api.md` |
+| Working in a Filament admin panel | `references/patterns/filament.md` |
 | Version-specific syntax questions | `references/version-notes.md` |
 | Curated code examples | `assets/snippets/` |
 

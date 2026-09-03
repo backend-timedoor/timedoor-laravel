@@ -7,7 +7,7 @@ title: PHP Language Style (PSR-12)
 
 Language-level style below the framework layer. Follows **PSR-12 Extended Coding Style** and PHP 8.x practice. For class/controller/model/route naming and file structure see [[coding-standards]]; for framework patterns (FormRequest, Eloquent, Resources) see [[coding-standards]] and the `patterns/` files.
 
-Laravel Pint (`laravel` preset) enforces most of the whitespace and ordering rules here automatically — run it after every change (see [[workflow]]). A few rules below (operator alignment, `declare(strict_types=1)`) are not in the default preset; apply them by hand, or enable the matching Pint rule in `pint.json` if the project wants them enforced.
+Laravel Pint (`laravel` preset) owns all whitespace, operator spacing, and brace placement — run it after every change and accept what it reports (see [[coding-standards]] and [[workflow]]). Do not hand-format against Pint. This file covers only what Pint does **not** decide: `declare(strict_types=1)`, identifier naming, string/quote/interpolation choices, type-system usage, and class element order. If the team wants a stricter whitespace rule (e.g. aligned `=>`), that goes in `pint.json`, not here.
 
 Apply the PHP 8.x items only where the project's PHP version supports them — detect it from `composer.json` first (see [[version-notes]]).
 
@@ -18,7 +18,7 @@ Apply the PHP 8.x items only where the project's PHP version supports them — d
 - End every PHP file with a single newline.
 - Omit the closing `?>` tag in files that contain only PHP.
 - Soft line limit 120 characters (aim for 80).
-- Start every PHP file with `declare(strict_types=1);` after the opening tag.
+- Start every **new** PHP file with `declare(strict_types=1);` after the opening tag. Don't add it to an existing legacy file during an unrelated small edit unless that project already uses it consistently (see [[version-notes]]).
 - One class per file; filename matches the class name exactly (PSR-4).
 
 ```php
@@ -41,20 +41,20 @@ These are the language-level deltas on top of the naming table in [[coding-stand
 
 **Correct:**
 ```php
-$itemName      = 'Kingston KVR13R9S4K4';
+$itemName = 'Kingston KVR13R9S4K4';
 $numberOfItems = 10;
-$totalPrice    = $price * $numberOfItems;
+$totalPrice = $price * $numberOfItems;
 ```
 
 ## Strings
 
 - Single quotes for literals with no interpolation. Double quotes when the literal contains an apostrophe (`"It's fine."`) or needs interpolation.
-- Concatenate with `.` surrounded by spaces. For a multi-line concatenation, align `.` under the `=`:
+- Concatenate with `.`. Break a long concatenation across lines, one fragment per line; let Pint settle the operator spacing and placement.
 
   ```php
   $sql = 'SELECT `id`, `name` FROM `people` '
-       . 'WHERE `name` = ? '
-       . 'ORDER BY `id` ASC';
+      .'WHERE `name` = ? '
+      .'ORDER BY `id` ASC';
   ```
 
 - Interpolate with braces: `"Hello {$name}"`. Never `"Hello $name"` or `"Hello ${name}"` (`${}` is deprecated as of PHP 8.2).
@@ -65,13 +65,13 @@ $totalPrice    = $price * $numberOfItems;
 - Short syntax `[]`, never `array()`.
 - Space after each comma. No negative or non-zero starting indexes.
 - Multi-line array: one element per line, one indent level, **trailing comma on the last element**.
-- Associative arrays: align `=>` for readability.
+- One space around `=>`; Pint normalizes it — do not hand-align.
 
 ```php
 $user = [
     'firstName' => 'John',
-    'lastName'  => 'Smith',
-    'age'       => 36,
+    'lastName' => 'Smith',
+    'age' => 36,
 ];
 ```
 
@@ -90,7 +90,7 @@ $user = [
   enum UserState: string
   {
       case Temporary = 'temporary';
-      case Normal    = 'normal';
+      case Normal = 'normal';
       case Cancelled = 'cancelled';
   }
   ```
@@ -118,7 +118,7 @@ $user = [
 
 - Opening `{` on the line **below** the class name.
 - Every property has an explicit type and explicit visibility.
-- Element order inside a class:
+- Element order inside a class (Pint's `laravel` preset does not enforce this — keep it by hand):
   1. `use` traits
   2. Constants
   3. Properties (static, then instance)
@@ -163,7 +163,7 @@ final class Cart
 | Global helper function | `snake_case` | `auth_user()` |
 | File (class) | matches class name | `Cart.php` |
 | Indentation | 4 spaces (PSR-12) | — |
-| Array syntax | short `[]`, trailing comma | `['key' => 'value',]` |
-| Strict types | mandatory | `declare(strict_types=1);` |
+| Array syntax | short `[]`, trailing comma | `['key' => 'value']` |
+| Strict types | mandatory on new files | `declare(strict_types=1);` |
 
 <!-- Add new team PHP-style rules below this line. Machine ingestion never touches this file. -->

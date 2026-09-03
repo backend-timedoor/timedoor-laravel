@@ -14,6 +14,7 @@ Format: [Semantic Versioning](https://semver.org/). Never mention client names o
 - Ingested proj-d: area layout + section/stack composition for Blade views; protected route group rule widened to L7+ and strengthened with mirrored `name()` prefixes
 - Ingested proj-e: grouped read services with typed, server-derived scope and named result methods
 - Ingested proj-g: bounded page sizes, module-local string-backed enums, validated DTO construction, Action evidence, and Filament enum navigation groups
+- New human-owned references distilled from internal team style skills: `php-style.md` (PSR-12 language style — file basics, `declare(strict_types=1)`, naming, strings, arrays, PHP 8.x types, control statements, class layout), `dependency-injection.md` (constructor vs method injection, per-call data, interface seams), `error-handling.md` (typed exceptions, centralized `renderable()` mapping, no double-report, `$dontReport`, dead code after `throw`), `jobs-events.md` (`ShouldQueue` default, transactional job body, one orchestration strategy), `logging.md` (structured context)
 
 Source catalog code: proj-a. Scope: full-api, Laravel 10, whole project. No source project identities recorded here.
 

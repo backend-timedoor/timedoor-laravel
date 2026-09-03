@@ -22,7 +22,12 @@ Read the relevant file(s) BEFORE writing code — not after:
 
 | Task | Read |
 |---|---|
-| Any new PHP code, refactor, or review | `references/coding-standards.md` + `references/manual-rules.md` |
+| Any new PHP code, refactor, or review | `references/coding-standards.md` + `references/php-style.md` + `references/manual-rules.md` |
+| PHP syntax, formatting, naming, types, class layout | `references/php-style.md` |
+| Constructor injection, services, actions, composition | `references/dependency-injection.md` |
+| Throwing, catching, or rendering exceptions | `references/error-handling.md` |
+| Jobs, queues, events, listeners | `references/jobs-events.md` |
+| Writing a log call | `references/logging.md` |
 | Anything touching auth, input, files, queries, secrets | `references/security.md` |
 | Any API endpoint, resource, or response | `references/api-response.md` |
 | Working in a Blade-based project | `references/patterns/blade-monolith.md` |

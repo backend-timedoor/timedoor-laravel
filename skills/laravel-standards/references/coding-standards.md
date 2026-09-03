@@ -8,6 +8,7 @@ title: PHP & Laravel Coding Standards
 ## Formatting
 
 - Format all PHP with Laravel Pint, 4-space indentation (Pint's `laravel` preset default). Run `./vendor/bin/pint` after every PHP change and fix everything it reports before calling a task done — see [[workflow]].
+- Pint owns whitespace, operator spacing, and brace placement. [[php-style]] covers the language-level rules Pint does not decide: `declare(strict_types=1)`, identifier naming, string/interpolation choices, type-system usage, and class element order.
 
 ## Naming
 

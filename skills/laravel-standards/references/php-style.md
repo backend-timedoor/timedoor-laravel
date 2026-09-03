@@ -19,7 +19,8 @@ Apply the PHP 8.x items only where the project's PHP version supports them — d
 - Omit the closing `?>` tag in files that contain only PHP.
 - Soft line limit 120 characters (aim for 80).
 - Start every **new** PHP file with `declare(strict_types=1);` after the opening tag. Don't add it to an existing legacy file during an unrelated small edit unless that project already uses it consistently (see [[version-notes]]).
-- One class per file; filename matches the class name exactly (PSR-4).
+
+One class per file and filename-matches-class-name are covered in [[coding-standards]].
 
 ```php
 <?php

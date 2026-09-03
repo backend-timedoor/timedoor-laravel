@@ -17,5 +17,6 @@ Public note: project names here are ANONYMIZED codes (proj-a, proj-b...). Real i
 | proj-e | api,blade | 6 | Service Pattern only, focused on easy-to-use/easy-to-understand services | extracted | 2026-08-31 |
 | proj-f | api | 9 | repository pattern without services | rejected-conflict | 2026-08-31 |
 | proj-g | api,filament | 12 | Whole project; Laravel 12 structure, security, PHP best practice, Filament suggestions | extracted | 2026-08-31 |
+| proj-h | blade,vue,inertia | 9 | Bulk export to PDF, XLSX/CSV system | extracted | 2026-09-01 |
 
 Legend — Status: `extracted` / `rejected-conflict` / `re-extraction pending` / `deprecated source`.

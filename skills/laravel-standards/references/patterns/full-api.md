@@ -178,3 +178,87 @@ Rule: Put domain enums in `app/Modules/{Domain}/Enums/{Name}Enum.php`, alongside
 Why: mirrors the existing rule that domain models live under `app/Modules/{Domain}/Models`, so a module stays deletable or movable as one unit. String backing keeps stored values self-describing and survives reordering of cases, which integer backing does not.
 Evidence: 11 enums across 4 domain modules, verified against source in proj-g. Single project; re-confirm on next full-api ingestion.
 Snippet candidate: no
+
+## Gateway status mapped to internal enum at integration boundary [L9+]
+Rule: Cast vendor webhook payloads into a DTO whose status field is a gateway-backed enum, then translate it to the internal status enum with an exhaustive `match` — including a `default` arm — inside the domain service. Internal code never reads vendor status values directly.
+Why: vendor status vocabularies change without notice; one translation point keeps the blast radius of a new or renamed vendor status to a single file, and internal enums stay free of vendor naming. Without a `default` arm, an unrecognized vendor status throws `UnhandledMatchError` mid-webhook.
+Evidence: status translation in payment service and sibling subscription service, 2 call sites, verified against source in proj-i; gateway status enum and internal status enum are separate types in both.
+Note: `match` requires PHP 8.0+. The DTO may be a plain readonly class or `spatie/laravel-data` — the rule is the single translation point, not the DTO library.
+Example:
+```php
+$payment->status = match ($data->status) {
+    GatewayPaymentStatus::EXPIRED => PaymentStatus::FAILED,
+    GatewayPaymentStatus::PENDING => PaymentStatus::PENDING,
+    GatewayPaymentStatus::PAID    => PaymentStatus::SUCCESS,
+    default => throw new UnexpectedValueException(
+        "Unhandled gateway status: {$data->status->value}"
+    ),
+};
+```
+
+## Raw external payload snapshots on a dedicated private disk [L9+]
+Rule: Before processing a gateway/external-system callback, persist the raw payload as a JSON file to a dedicated filesystem disk with `'visibility' => 'private'` under `storage_path('app/private/...')`, keyed by `Ym/date` plus a sanitized reference. Call `Storage::disk(...)` directly at the call site — no per-disk wrapper class. Do not write raw payload snapshots into application log channels.
+Why: payload snapshots exist for dispute resolution and replay, not log search — they belong in files on a private disk, not interleaved with app logs; private visibility keeps them off any public path. A wrapper class per disk wraps a one-line call; add one only when call sites multiply.
+Evidence: 5 private disks in config/filesystems.php and payload snapshot writes in 2 gateway-related log classes, verified against source in proj-i. Per-disk wrapper classes were observed but not adopted — 2 call sites do not justify them.
+Note: sanitize any externally derived value used in the path (e.g. webhook reference IDs) before building the filename.
+Example:
+```php
+// config/filesystems.php
+'payment-callbacks' => [
+    'driver' => 'local',
+    'root' => storage_path('app/private/payment-callbacks'),
+    'visibility' => 'private',
+],
+
+Storage::disk('payment-callbacks')->put(
+    now()->format('Ym/d').'/'.$reference.'.json',
+    json_encode($payload, JSON_THROW_ON_ERROR),
+);
+```
+
+## Abstract base notification owns the channel [L7+]
+Rule: For each custom notification channel, define one abstract base Notification that pins `via()` to that channel (and holds any shared message construction, e.g. a payload builder trait); concrete notifications extend it and override only content methods.
+Why: channel choice is decided once per channel, not per notification — a new notification cannot silently add or drop a channel, and shared channel plumbing has one home.
+Evidence: FCM base notification with uniform via() and 3+ content-only subclasses, verified against source in proj-i. Single project; re-confirm on next ingestion that touches notifications.
+Example:
+```php
+abstract class FcmNotification extends Notification
+{
+    public function via($notifiable): array
+    {
+        return [FcmChannel::class];
+    }
+
+    abstract public function title(): string;
+    abstract public function body(): string;
+    abstract public function data(): array;
+}
+```
+
+## Gateway webhook endpoints: signature verification gates the FormRequest exception [L9+]
+Rule: A gateway webhook endpoint is the one sanctioned exception to the "every input endpoint uses a FormRequest" rule — and only when the handler verifies the vendor's signature as its first action (HMAC or SDK verifier per vendor spec) and rejects unsigned/mismatched payloads before any parsing. Verification failure returns an error response, never processes the payload. Raw-body DTO parsing after a verified signature is acceptable in place of validation rules.
+Why: gateway callbacks arrive from vendor infrastructure, not app users — auth guards and field allow-lists don't fit vendor-shaped payloads, and rewriting the raw body through validation rules can corrupt signature-relevant bytes. But "vendor sends it" is not trust: without signature verification the endpoint accepts forged payment state. Verification-first is what makes the exception safe.
+Evidence: human decision at proj-i ingestion review (2026-09-03), amending the FormRequest rule with this carve-out. The ingested source itself had a callback endpoint with neither FormRequest nor signature verification — flagged and rejected as-is; this pattern prescribes the safe form rather than adopting what was observed.
+Note: the human-owned rule file still reads "no exceptions"; this pattern is the recorded carve-out. Verify the signature over the exact raw request body, before any middleware or parsing that could alter it.
+Example:
+```php
+public function __construct(
+    private PaymentCallbackHandler $handler,
+) {
+}
+
+public function __invoke(Request $request): JsonResponse
+{
+    $signature = $request->header('X-Callback-Token');
+
+    if (! hash_equals(config('services.gateway.webhook_token'), (string) $signature)) {
+        Log::warning('Webhook signature mismatch', ['ip' => $request->ip()]);
+        abort(403);
+    }
+
+    $dto = PaymentCallbackDTO::from($request->getContent()); // raw body, post-verification
+    $this->handler->handle($dto);
+
+    return response()->json();
+}
+```

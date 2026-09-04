@@ -319,6 +319,93 @@ public function newEloquentBuilder($query): InvoiceQueryBuilder
 Invoice::query()->whereIsPaid()->whereIsNotCanceled()->get();
 ```
 
+## External SDK results become typed DTOs at the integration boundary [L10+]
+Rule: An Action or service method calling an external SDK must not return its SDK result object. Convert once at the boundary with `spatie/laravel-data`: `return XxxResultDto::from($result->toArray());`. Return the typed result DTO; application code never touches the vendor Result class. Keep the Action entry point an instance `execute()` per the existing Action rule.
+Why: one seam owns the vendor payload shape. Consumers depend on a stable typed contract. Vendor response changes stay detectable at one boundary.
+Evidence: identical shape in 3 FaceRecognition Actions, verified in proj-k (Laravel 10, `spatie/laravel-data` v4.7): `DetectFacesAction.php:30`, `IndexFacesAction.php:34`, `SearchFacesByImageAction.php:33`. Source `static execute()` and inline client construction were not adopted; existing Action standards require instance `execute()`.
+Example:
+```php
+public function execute(IndexPhotosArgs $args): IndexPhotosResultData
+{
+    $result = $this->client->indexPhotos([ /* args */ ]);
+
+    return IndexPhotosResultData::from($result->toArray());
+}
+```
+
+## Nested vendor arrays hydrate through guarded typed accessors [L10+]
+Rule: For nested vendor arrays needing typed objects, retain a raw nullable array constructor property, mapped from the vendor key via `#[MapInputName]`. Expose an accessor returning `[]` when null. Hydrate each item only after an `is_array` guard; skip non-array items. Make external envelope fields nullable by default because providers omit keys.
+Why: null-safe typed API keeps wire normalization out of callers. Guard prevents one malformed or null item crashing the whole response.
+Evidence: 8 accessors across 4 FaceRecognition result/record DTO files, verified in proj-k. Source contains guarded and unguarded loops; guarded form is prescribed, unguarded form is not adopted.
+Example:
+```php
+class IndexPhotosResultData extends Data
+{
+    /** @param array<null|array<string, mixed>> $photoRecords */
+    public function __construct(
+        #[MapInputName('PhotoRecords')]
+        public readonly ?array $photoRecords,
+    ) {
+    }
+
+    /** @return array<PhotoRecordData> */
+    public function getPhotoRecords(): array
+    {
+        if (! is_array($this->photoRecords)) {
+            return [];
+        }
+
+        $records = [];
+        foreach ($this->photoRecords as $record) {
+            if (! is_array($record)) {
+                continue;
+            }
+
+            $records[] = PhotoRecordData::from($record);
+        }
+
+        return $records;
+    }
+}
+```
+
+## One shared DTO per truly identical vendor object [L10+]
+Rule: When multiple results from one external service embed an object with exactly the same contract — same field meanings, input types, nullability, and nested shape — define one shared DTO under `app/Modules/{Domain}/DataTransferObjects/Shared/` and reference it from each result DTO. Do not share merely similar objects; keep separate DTOs when any contract detail differs. Keep sharing within one integration module.
+Why: one vendor contract prevents endpoint-specific drift. The exact-identity gate avoids hiding meaningful differences behind an overly generic DTO. Module scope keeps ownership clear.
+Evidence: one shared `Face` DTO with the same vendor object shape referenced by `IndexFaces/FaceRecordDto.php:26-33` and `SearchFacesByImage/FaceMatchDto.php:24-31` in proj-k. Source `DTOs/` naming and multiple classes per file were not adopted; canonical path is `DataTransferObjects/`, one class per file.
+Example:
+```text
+app/Modules/PhotoVerification/DataTransferObjects/
+    Shared/
+        FaceData.php
+    IndexPhotos/
+        PhotoRecordData.php     // getFace(): ?FaceData
+    SearchPhotos/
+        PhotoMatchData.php      // getFace(): ?FaceData
+```
+
+## Result DTOs may expose pure domain projections [L10+]
+Rule: Typed external-result DTOs may expose derived read methods — counts over hydrated collections, threshold filters, boolean predicates, first-item/ID extraction — computed only from their own properties. No side effects, I/O, service, or config lookups. Thresholds arrive as parameters with explicit defaults. These are internal integration results; map through a `JsonResource` before HTTP output.
+Why: raw vendor envelopes lack domain vocabulary. Pure projections provide intent-revealing, mock-free unit-testable calls. I/O-dependent logic belongs in a service or Action.
+Evidence: 26 projection methods across 3 FaceRecognition result DTOs in proj-k, consumed by 2 membership services.
+Example:
+```php
+public function countIndexedPhotos(): int
+{
+    return count($this->getPhotoRecords());
+}
+
+public function isSuccessful(): bool
+{
+    return $this->countIndexedPhotos() > 0;
+}
+
+public function getFirstPhotoId(): ?string
+{
+    return $this->getPhotoRecords()[0]?->getPhoto()?->photoId;
+}
+```
+
 ## DTO factories own model-to-DTO normalization [L8+]
 Rule: When a DTO needs construction normalization (enum coercion, date casting, relation flattening) or has more than one non-HTTP source, put construction in dedicated `XxxDataFactory` under `app/Modules/{Domain}/DataTransferObjects/Factories/`, with static constructors such as `fromModel(Xxx $model): XxxData`. Factory owns coercion; DTO stays value object. HTTP input is not factory source — request-to-DTO mapping stays in FormRequest `data()` built from `validated()`; never let factory read Request directly.
 

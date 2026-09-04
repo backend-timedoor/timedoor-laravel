@@ -20,5 +20,6 @@ Public note: project names here are ANONYMIZED codes (proj-a, proj-b...). Real i
 | proj-h | blade,vue,inertia | 9 | Bulk export to PDF, XLSX/CSV system | extracted | 2026-09-01 |
 | proj-i | blade,vue,inertia,stisla | 9 | Multi-payment gateway, CDN storage integration, job & notification system | extracted | 2026-09-03 |
 | proj-j | api,blade,vue,inertia,stisla | 8 | Domain modules, typed query builders, DTO factories, status enums, event/listener separation | extracted | 2026-09-04 |
+| proj-k | api | 10 | AI face-recognition DTOs: AWS response transformation, shared DTOs, guarded accessors, pure projections | extracted | 2026-09-04 |
 
 Legend — Status: `extracted` / `rejected-conflict` / `re-extraction pending` / `deprecated source`.

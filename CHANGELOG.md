@@ -17,6 +17,7 @@ Format: [Semantic Versioning](https://semver.org/). Never mention client names o
 - New human-owned references distilled from internal team style skills: `php-style.md` (PSR-12 language style — file basics, `declare(strict_types=1)`, naming, strings, arrays, PHP 8.x types, control statements, class layout), `dependency-injection.md` (constructor vs method injection, per-call data, interface seams), `error-handling.md` (typed exceptions, centralized `renderable()` mapping, no double-report, `$dontReport`, dead code after `throw`), `jobs-events.md` (`ShouldQueue` default, transactional job body, one orchestration strategy), `logging.md` (structured context)
 - Ingested proj-h: dedicated spreadsheet export classes with explicit inputs, eager-loaded query-backed datasets, and conditional view rendering
 - Ingested proj-i: gateway status boundary mapping, private external payload snapshots, abstract notification channel bases, and signature-gated webhook FormRequest exception
+- Ingested proj-j: domain module subfolder layout, typed builders for complex filters, and named DTO factories for model normalization
 
 Source catalog code: proj-a. Scope: full-api, Laravel 10, whole project. No source project identities recorded here.
 

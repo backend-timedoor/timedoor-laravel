@@ -5,6 +5,29 @@ title: Patterns — full-api
 
 # Patterns: full-api
 
+## Domain module folder layout [L7+]
+Rule: Within each existing `app/Modules/{Domain}/` module, keep domain-specific Events, Listeners, Jobs, QueryBuilder, and DataTransferObjects together under same domain folder. Put DTO factories under `DataTransferObjects/Factories/`. A module is movable or deletable as one unit. Cross-cutting code (Http, Supports, Rules) stays outside. Canonical DTO folder name is `DataTransferObjects`, not `DTO`.
+
+Why: fills undefined placement for Events, Listeners, Jobs, QueryBuilder, and DTOs without duplicating existing Models, Actions, Enums, or Services rules; keeps domain code self-contained for moves and deletions.
+
+This rule extends existing module-location rules; it does not replace them.
+
+Evidence: ~20 domains each carrying the full subfolder set, verified against source in proj-j (L8). Source root was `app/Services/{Domain}` — not adopted; the prescribed `app/Modules` root follows the human rule instead of the source. One source domain used `DTO/` as the folder name — not adopted; `DataTransferObjects` is canonical.
+Example:
+```text
+app/Modules/Group/
+    Models/
+    Actions/
+    Enums/
+    Events/
+    Listeners/
+    Jobs/
+    QueryBuilder/
+    DataTransferObjects/
+        GroupData.php
+        Factories/GroupDataFactory.php
+```
+
 ## Action classes located under `app/Modules/{Domain}/Actions` [L10+]
 Rule: Extract non-trivial business logic (multi-step writes, transactions, cross-model operations) into a dedicated Action class under `app/Modules/{Domain}/Actions`, one action per file. Name it `<Verb><Entity>Action`; event/webhook consumers may instead use `<Event>Handler` to signal they're triggered by an external event, not a direct call. Use an instance method named `execute()` as the Action entry point.
 Why: keeps controllers thin/testable and colocates business logic with its domain module rather than scattering it across generic `app/Services`; reinforces existing human rule "one public method per Action class" with a concrete file-location and call-convention standard.
@@ -260,5 +283,61 @@ public function __invoke(Request $request): JsonResponse
     $this->handler->handle($dto);
 
     return response()->json();
+}
+```
+
+## Per-model typed QueryBuilder via `newEloquentBuilder()` [L8+]
+Rule: When a model accumulates several reusable filters, attach typed query builder by overriding `newEloquentBuilder($query)` and returning class extending `Illuminate\Database\Eloquent\Builder`, placed at `app/Modules/{Domain}/QueryBuilder/XxxQueryBuilder.php`. Give it fluent `where...(): static` methods comparing enum-backed columns by enum case, then return `$this`. Keep methods within model's tables and relations; never reach into another domain's internals.
+
+Why: typed, chainable, IDE-discoverable filter API beats growing model scope pile; enum comparisons remove magic status strings from call sites.
+
+Evidence: 26 models override `newEloquentBuilder()` with per-domain builders across ~20 domains, verified against source in proj-j (L8). Source cross-domain filter deliberately not adopted.
+
+Note: local scopes (`scopeActive`) remain default for simple one-line filters. Use typed builder only for composed filters (`whereHas` chains, time-window logic) or filter sets large enough that static typing pays off. Not superseded by `spatie/laravel-query-builder`: that package allow-lists request-driven filters; typed methods are hand-written domain filters, and both compose. Declare native `: static` return type; docblock-only fails PHPStan level 7. On PHP 8.1+, pass native enum cases; legacy Laravel 8 may use compatible enum implementations.
+Example:
+```php
+// app/Modules/Invoice/QueryBuilder/InvoiceQueryBuilder.php
+class InvoiceQueryBuilder extends Builder
+{
+    public function whereIsPaid(): static
+    {
+        return $this->where('status', InvoiceStatus::Paid);
+    }
+
+    public function whereIsNotCanceled(): static
+    {
+        return $this->where('status', '!=', InvoiceStatus::Canceled);
+    }
+}
+
+// app/Modules/Invoice/Models/Invoice.php
+public function newEloquentBuilder($query): InvoiceQueryBuilder
+{
+    return new InvoiceQueryBuilder($query);
+}
+
+Invoice::query()->whereIsPaid()->whereIsNotCanceled()->get();
+```
+
+## DTO factories own model-to-DTO normalization [L8+]
+Rule: When a DTO needs construction normalization (enum coercion, date casting, relation flattening) or has more than one non-HTTP source, put construction in dedicated `XxxDataFactory` under `app/Modules/{Domain}/DataTransferObjects/Factories/`, with static constructors such as `fromModel(Xxx $model): XxxData`. Factory owns coercion; DTO stays value object. HTTP input is not factory source — request-to-DTO mapping stays in FormRequest `data()` built from `validated()`; never let factory read Request directly.
+
+Why: one home for normalization keeps controllers and importers free of coercion logic without competing with FormRequest `data()` rule for request mapping.
+
+Evidence: 15 factory classes against ~40 DTOs across several domains, verified against source in proj-j (L8, spatie/data-transfer-object v2.8). That package is archived/EOL; on Laravel 9+ / PHP 8.1+ prefer native readonly DTOs or `spatie/laravel-data`. "Factory" means DTO construction, not Laravel database factories; never place these in `database/factories`.
+Example:
+```php
+// app/Modules/Group/DataTransferObjects/Factories/ClassDataFactory.php
+class ClassDataFactory
+{
+    public static function fromModel(Group $group): ClassData
+    {
+        return new ClassData([
+            'name'         => $group->name,
+            'status'       => $group->status, // enum, not raw string
+            'start_date'   => $group->start_date->toDateString(),
+            'meeting_days' => $group->meetingDays->toArray(),
+        ]);
+    }
 }
 ```

@@ -19,6 +19,7 @@ Format: [Semantic Versioning](https://semver.org/). Never mention client names o
 - Ingested proj-i: gateway status boundary mapping, private external payload snapshots, abstract notification channel bases, and signature-gated webhook FormRequest exception
 - Ingested proj-j: domain module subfolder layout, typed builders for complex filters, and named DTO factories for model normalization
 - Ingested proj-k: external SDK boundary DTOs, guarded nested DTO accessors, truly identical shared DTOs, and pure result projections
+- Ingested proj-l: corroborated domain Action placement and validated FormRequest-to-DTO boundaries
 
 Source catalog code: proj-a. Scope: full-api, Laravel 10, whole project. No source project identities recorded here.
 

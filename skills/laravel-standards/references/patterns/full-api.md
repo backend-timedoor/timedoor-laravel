@@ -406,6 +406,43 @@ public function getFirstPhotoId(): ?string
 }
 ```
 
+## Ordered typed-state workflow pipeline [L10+]
+Rule: Use Laravel `Pipeline` only when multiple ordered stages independently transform one typed workflow state object. Stages expose the named method passed to `via()`; finish with an identity closure returning final state. Do not use pipelines for trivial one- or two-step logic.
+Why: typed state makes stage contracts explicit; sequencing stays composable; stages stay unit-testable.
+Evidence: 5 occurrences across 4 Production Actions in proj-m (L10). Re-confirm on next full-api ingestion.
+Example:
+```php
+$state = app(Pipeline::class)
+    ->send($state)
+    ->via('process')
+    ->through([ValidateStage::class, AuthorizeStage::class, PersistStage::class])
+    ->then(static fn (WorkflowState $state): WorkflowState => $state);
+```
+
+## Relationship collection reconciliation [L10+]
+Rule: Replace a parent's child collection inside one `DB::transaction`: persist validated children through the parent relationship, track persisted keys, then delete only relation-scoped rows omitted from payload with `whereNotIn`. Define empty-payload behavior explicitly — delete all or skip deletion — never accidental default.
+Why: transaction prevents partial writes; relationship scoping prevents cross-parent deletion; explicit empty handling prevents silent data loss.
+Evidence: 11 occurrences across Production Actions in proj-m (L10).
+Example:
+```php
+DB::transaction(function () use ($parent, $payloads): void {
+    $persistedIds = [];
+    foreach ($payloads as $payload) {
+        $child = $parent->items()->firstOrNew(['id' => $payload['id'] ?? null]);
+        $child->fill(['name' => $payload['name']]);
+        $child->saveOrFail();
+        $persistedIds[] = $child->getKey();
+    }
+
+    // Explicit policy: empty payload deletes all children.
+    $parent->items()->when(
+        $persistedIds !== [],
+        fn ($query) => $query->whereNotIn('id', $persistedIds)->delete(),
+        fn ($query) => $query->delete(),
+    );
+});
+```
+
 ## DTO factories own model-to-DTO normalization [L8+]
 Rule: When a DTO needs construction normalization (enum coercion, date casting, relation flattening) or has more than one non-HTTP source, put construction in dedicated `XxxDataFactory` under `app/Modules/{Domain}/DataTransferObjects/Factories/`, with static constructors such as `fromModel(Xxx $model): XxxData`. Factory owns coercion; DTO stays value object. HTTP input is not factory source — request-to-DTO mapping stays in FormRequest `data()` built from `validated()`; never let factory read Request directly.
 

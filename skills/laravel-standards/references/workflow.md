@@ -9,8 +9,8 @@ These are process rules, not syntax rules. They apply to EVERY coding task, rega
 
 ## After writing or editing any PHP code
 
-1. **Run Laravel Pint**: `./vendor/bin/pint` (scope to changed files with `./vendor/bin/pint app/Path/File.php` for speed). Fix everything it reports.
-   - *Why:* consistent formatting removes style debates from code review entirely.
+1. **Run Laravel Pint only on changed PHP files**: determine dirty PHP files with `git diff --name-only` and run `./vendor/bin/pint -- <changed-file-1> <changed-file-2>`. Do not format unrelated existing files. Fix everything it reports.
+   - *Why:* keeps the diff limited to the current task and avoids unrelated formatting changes.
 2. **Run PHPStan at level 7**: `./vendor/bin/phpstan analyse` with `level: 7` in `phpstan.neon`. Resolve all findings — do not suppress with `@phpstan-ignore` unless the user approves.
    - *Why:* static analysis catches type bugs before runtime; suppressions rot.
 3. **Run relevant tests** if they exist: `php artisan test --filter=<Feature>`.

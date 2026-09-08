@@ -45,7 +45,7 @@ A coding task is NOT complete until all of these pass. Run them, don't just ment
 
 1. Before implementation, write focused unit tests from the requirements. Cover required behavior and supported boundary cases; skip speculative cases and test-only abstractions.
 2. For every new API endpoint, add the smallest relevant endpoint Feature test when behavior crosses HTTP, middleware, validation, authorization, or persistence boundaries.
-3. `./vendor/bin/pint` — fix all style issues (if Pint is not installed in the project, note it to the user and suggest adding it).
+3. `./vendor/bin/pint` on changed PHP files only — fix all style issues without reformatting unrelated files. If Pint is not installed in the project, note it to the user and suggest adding it.
 4. `./vendor/bin/phpstan analyse` (or `composer analyse` if defined) — resolve all findings at level 7 unless the project explicitly requires a different level.
 5. Re-check the diff against `references/security.md` — no mass-assignment holes, no unvalidated input, no secrets in code.
 6. Run focused unit/Feature tests after implementation (`php artisan test --filter=...`).
